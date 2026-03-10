@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useImperativeHandle, forwardRef, useFrame } from '@react-three/fiber';
+import { useRef, useImperativeHandle, forwardRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface Particle {
