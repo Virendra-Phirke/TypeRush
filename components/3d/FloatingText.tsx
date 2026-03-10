@@ -30,7 +30,6 @@ export function FloatingText({ text, currentIndex }: FloatingTextProps) {
         position={[-4, 0.3, 0]}
         fontSize={0.35}
         color="#00ff00"
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="left"
         anchorY="middle"
         maxWidth={8}
@@ -48,7 +47,6 @@ export function FloatingText({ text, currentIndex }: FloatingTextProps) {
           ]}
           fontSize={0.35}
           color="#ffd60a"
-          fontFamily="/fonts/GeistMono_Regular.ttf"
           anchorX="left"
           anchorY="middle"
         >
@@ -65,7 +63,6 @@ export function FloatingText({ text, currentIndex }: FloatingTextProps) {
         ]}
         fontSize={0.35}
         color="#666666"
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="left"
         anchorY="middle"
         maxWidth={8}

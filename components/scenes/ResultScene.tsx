@@ -64,7 +64,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
         position={[0, 3, 0]}
         fontSize={1}
         color={personalBest ? '#ff00ff' : '#00f5d4'}
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="center"
         anchorY="middle"
       >
@@ -79,7 +78,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             position={[0, 0.3, 0]}
             fontSize={0.6}
             color="#ffd60a"
-            fontFamily="/fonts/GeistMono_Regular.ttf"
             anchorX="center"
             anchorY="middle"
           >
@@ -89,7 +87,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             position={[0, -0.3, 0]}
             fontSize={1.2}
             color="#00f5d4"
-            fontFamily="/fonts/GeistMono_Regular.ttf"
             anchorX="center"
             anchorY="middle"
           >
@@ -103,7 +100,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             position={[0, 0.3, 0]}
             fontSize={0.6}
             color="#ffd60a"
-            fontFamily="/fonts/GeistMono_Regular.ttf"
             anchorX="center"
             anchorY="middle"
           >
@@ -113,7 +109,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             position={[0, -0.3, 0]}
             fontSize={1.2}
             color="#00f5d4"
-            fontFamily="/fonts/GeistMono_Regular.ttf"
             anchorX="center"
             anchorY="middle"
           >
@@ -127,7 +122,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             position={[0, 0.3, 0]}
             fontSize={0.6}
             color="#ffd60a"
-            fontFamily="/fonts/GeistMono_Regular.ttf"
             anchorX="center"
             anchorY="middle"
           >
@@ -137,7 +131,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             position={[0, -0.3, 0]}
             fontSize={1.2}
             color="#00f5d4"
-            fontFamily="/fonts/GeistMono_Regular.ttf"
             anchorX="center"
             anchorY="middle"
           >
@@ -152,7 +145,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
           position={[-3, 0, 0]}
           fontSize={0.35}
           color="#888888"
-          fontFamily="/fonts/Geist_Regular.ttf"
           anchorX="left"
           anchorY="middle"
         >
@@ -165,7 +157,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
         position={[-3, -1.5, 0]}
         fontSize={0.5}
         color="#ffd60a"
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="left"
         anchorY="middle"
       >
@@ -179,7 +170,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             position={[0, -i * 0.35, 0]}
             fontSize={0.25}
             color={i === 0 ? '#ff00ff' : '#00f5d4'}
-            fontFamily="/fonts/GeistMono_Regular.ttf"
             anchorX="left"
             anchorY="middle"
           >
@@ -206,7 +196,6 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
           position={[0, 0, 0.1]}
           fontSize={0.3}
           color="#0d0d0d"
-          fontFamily="/fonts/GeistMono_Regular.ttf"
           anchorX="center"
           anchorY="middle"
         >

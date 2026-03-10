@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, Text } from '@react-three/drei';
+import { OrbitControls, Environment, Text, Html } from '@react-three/drei';
 import { useState } from 'react';
 import * as THREE from 'three';
 import type { TestConfig, GameMode, Difficulty } from '@/app/page';
@@ -80,7 +80,6 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
         position={[0, 3, 0]}
         fontSize={1.2}
         color="#00f5d4"
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="center"
         anchorY="middle"
       >
@@ -92,7 +91,6 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
         position={[0, 2.2, 0]}
         fontSize={0.4}
         color="#888888"
-        fontFamily="/fonts/Geist_Regular.ttf"
         anchorX="center"
         anchorY="middle"
       >
@@ -104,7 +102,6 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
         position={[-3, 1.2, 0]}
         fontSize={0.5}
         color="#ffd60a"
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="left"
         anchorY="middle"
       >
@@ -137,7 +134,6 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
         position={[3, 1.2, 0]}
         fontSize={0.5}
         color="#ffd60a"
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="left"
         anchorY="middle"
       >
@@ -163,7 +159,6 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
         position={[0, -2.2, 0]}
         fontSize={0.5}
         color="#ffd60a"
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="center"
         anchorY="middle"
       >
@@ -196,7 +191,6 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
           position={[0, 0, 0.1]}
           fontSize={0.3}
           color="#0d0d0d"
-          fontFamily="/fonts/GeistMono_Regular.ttf"
           anchorX="center"
           anchorY="middle"
         >
@@ -235,7 +229,6 @@ function ModeCard({
         position={[0, 0.1, 0.1]}
         fontSize={0.25}
         color={isSelected ? '#0d0d0d' : '#00f5d4'}
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="center"
         anchorY="middle"
       >
@@ -245,7 +238,6 @@ function ModeCard({
         position={[0, -0.15, 0.1]}
         fontSize={0.12}
         color={isSelected ? '#888888' : '#666666'}
-        fontFamily="/fonts/Geist_Regular.ttf"
         anchorX="center"
         anchorY="middle"
       >
@@ -282,7 +274,6 @@ function DifficultyButton({
         position={[0, 0, 0.1]}
         fontSize={0.2}
         color={isSelected ? '#0d0d0d' : color}
-        fontFamily="/fonts/GeistMono_Regular.ttf"
         anchorX="center"
         anchorY="middle"
       >
