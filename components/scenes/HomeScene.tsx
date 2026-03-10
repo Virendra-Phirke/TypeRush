@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, Text, Html } from '@react-three/drei';
+import { OrbitControls, Environment, Html } from '@react-three/drei';
 import { useState } from 'react';
 import * as THREE from 'three';
 import type { TestConfig, GameMode, Difficulty } from '@/app/page';
@@ -75,38 +75,14 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
       <Environment preset="night" />
       <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={2} />
 
-      {/* Title */}
-      <Text
-        position={[0, 3, 0]}
-        fontSize={1.2}
-        color="#00f5d4"
-        anchorX="center"
-        anchorY="middle"
-      >
-        TYPE RUSH
-      </Text>
-
-      {/* Subtitle */}
-      <Text
-        position={[0, 2.2, 0]}
-        fontSize={0.4}
-        color="#888888"
-        anchorX="center"
-        anchorY="middle"
-      >
-        3D Keyboard Typing Speed Challenge
-      </Text>
-
-      {/* Mode Selection Text */}
-      <Text
-        position={[-3, 1.2, 0]}
-        fontSize={0.5}
-        color="#ffd60a"
-        anchorX="left"
-        anchorY="middle"
-      >
-        SELECT MODE
-      </Text>
+      {/* Title and subtitle using HTML overlay */}
+      <Html position={[0, 2, 0]} distanceFactor={6}>
+        <div className="text-center pointer-events-none">
+          <h1 className="text-5xl font-mono font-bold" style={{ color: '#00f5d4' }}>TYPE RUSH</h1>
+          <p className="text-sm mt-2" style={{ color: '#888888' }}>3D Keyboard Typing Speed Challenge</p>
+          <p className="text-xs mt-4" style={{ color: '#ffd60a' }}>SELECT MODE</p>
+        </div>
+      </Html>
 
       {/* Mode Cards */}
       <group position={[-3, 0, 0]}>
@@ -129,18 +105,7 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
         })}
       </group>
 
-      {/* Difficulty Selection Text */}
-      <Text
-        position={[3, 1.2, 0]}
-        fontSize={0.5}
-        color="#ffd60a"
-        anchorX="left"
-        anchorY="middle"
-      >
-        DIFFICULTY
-      </Text>
-
-      {/* Difficulty Buttons */}
+      {/* Difficulty Buttons with label */}
       <group position={[3, 0, 0]}>
         {DIFFICULTIES.map((diff, i) => (
           <DifficultyButton
@@ -153,17 +118,6 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
           />
         ))}
       </group>
-
-      {/* Options for selected mode */}
-      <Text
-        position={[0, -2.2, 0]}
-        fontSize={0.5}
-        color="#ffd60a"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {MODE_CONFIG[selectedMode].optionLabels[selectedOption]}
-      </Text>
 
       {/* Option Selector */}
       <group position={[0, -2.8, 0]}>
@@ -187,15 +141,11 @@ function HomeContent({ onStartTest }: HomeSceneProps) {
             emissiveIntensity={0.5}
           />
         </mesh>
-        <Text
-          position={[0, 0, 0.1]}
-          fontSize={0.3}
-          color="#0d0d0d"
-          anchorX="center"
-          anchorY="middle"
-        >
-          START TEST
-        </Text>
+        <Html position={[0, 0, 0.1]} distanceFactor={3}>
+          <p className="text-sm font-mono font-bold pointer-events-none" style={{ color: '#0d0d0d' }}>
+            START TEST
+          </p>
+        </Html>
       </group>
     </>
   );
@@ -225,24 +175,16 @@ function ModeCard({
           wireframe={!isSelected}
         />
       </mesh>
-      <Text
-        position={[0, 0.1, 0.1]}
-        fontSize={0.25}
-        color={isSelected ? '#0d0d0d' : '#00f5d4'}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {label}
-      </Text>
-      <Text
-        position={[0, -0.15, 0.1]}
-        fontSize={0.12}
-        color={isSelected ? '#888888' : '#666666'}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {description}
-      </Text>
+      <Html position={[0, 0, 0.1]} distanceFactor={4}>
+        <div className="text-center pointer-events-none">
+          <p className="text-sm font-bold" style={{ color: isSelected ? '#0d0d0d' : '#00f5d4' }}>
+            {label}
+          </p>
+          <p className="text-xs" style={{ color: isSelected ? '#888888' : '#666666' }}>
+            {description}
+          </p>
+        </div>
+      </Html>
     </group>
   );
 }
@@ -270,15 +212,11 @@ function DifficultyButton({
           emissiveIntensity={isSelected ? 0.6 : 0.1}
         />
       </mesh>
-      <Text
-        position={[0, 0, 0.1]}
-        fontSize={0.2}
-        color={isSelected ? '#0d0d0d' : color}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {label}
-      </Text>
+      <Html position={[0, 0, 0.1]} distanceFactor={3}>
+        <p className="text-xs font-mono font-bold pointer-events-none" style={{ color: isSelected ? '#0d0d0d' : color }}>
+          {label}
+        </p>
+      </Html>
     </group>
   );
 }

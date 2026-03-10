@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { Environment, Text, Html } from '@react-three/drei';
+import { Environment, Html } from '@react-three/drei';
 import { useEffect, useState } from 'react';
 import * as THREE from 'three';
 import type { TestResult } from '@/app/page';
@@ -59,124 +59,42 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
       <pointLight position={[10, 10, 10]} intensity={0.6} />
       <pointLight position={[-10, -10, 5]} intensity={0.3} color="#00f5d4" />
 
-      {/* Title */}
-      <Text
-        position={[0, 3, 0]}
-        fontSize={1}
-        color={personalBest ? '#ff00ff' : '#00f5d4'}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {personalBest ? 'NEW RECORD!' : 'TEST COMPLETE'}
-      </Text>
+      {/* Results UI */}
+      <Html position={[0, 2.5, 0]} distanceFactor={6}>
+        <div className="text-center pointer-events-none">
+          <h1 className="text-5xl font-mono font-bold mb-4" style={{ color: personalBest ? '#ff00ff' : '#00f5d4' }}>
+            {personalBest ? 'NEW RECORD!' : 'TEST COMPLETE'}
+          </h1>
+          
+          <div className="grid grid-cols-3 gap-8 mb-6">
+            <div>
+              <p className="text-sm" style={{ color: '#ffd60a' }}>WPM</p>
+              <p className="text-3xl font-mono font-bold" style={{ color: '#00f5d4' }}>{result.wpm}</p>
+            </div>
+            <div>
+              <p className="text-sm" style={{ color: '#ffd60a' }}>ACCURACY</p>
+              <p className="text-3xl font-mono font-bold" style={{ color: '#00f5d4' }}>{result.accuracy}%</p>
+            </div>
+            <div>
+              <p className="text-sm" style={{ color: '#ffd60a' }}>TIME</p>
+              <p className="text-3xl font-mono font-bold" style={{ color: '#00f5d4' }}>{(result.timeElapsed / 1000).toFixed(1)}s</p>
+            </div>
+          </div>
 
-      {/* Main stats */}
-      <group position={[0, 1.5, 0]}>
-        {/* WPM */}
-        <group position={[-2, 0, 0]}>
-          <Text
-            position={[0, 0.3, 0]}
-            fontSize={0.6}
-            color="#ffd60a"
-            anchorX="center"
-            anchorY="middle"
-          >
-            WPM
-          </Text>
-          <Text
-            position={[0, -0.3, 0]}
-            fontSize={1.2}
-            color="#00f5d4"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {result.wpm}
-          </Text>
-        </group>
+          <p className="text-xs mb-6" style={{ color: '#888888' }}>
+            Words: {result.wordsTyped} · Errors: {result.errors}
+          </p>
 
-        {/* Accuracy */}
-        <group position={[0, 0, 0]}>
-          <Text
-            position={[0, 0.3, 0]}
-            fontSize={0.6}
-            color="#ffd60a"
-            anchorX="center"
-            anchorY="middle"
-          >
-            ACCURACY
-          </Text>
-          <Text
-            position={[0, -0.3, 0]}
-            fontSize={1.2}
-            color="#00f5d4"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {result.accuracy}%
-          </Text>
-        </group>
-
-        {/* Time */}
-        <group position={[2, 0, 0]}>
-          <Text
-            position={[0, 0.3, 0]}
-            fontSize={0.6}
-            color="#ffd60a"
-            anchorX="center"
-            anchorY="middle"
-          >
-            TIME
-          </Text>
-          <Text
-            position={[0, -0.3, 0]}
-            fontSize={1.2}
-            color="#00f5d4"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {(result.timeElapsed / 1000).toFixed(1)}s
-          </Text>
-        </group>
-      </group>
-
-      {/* Detailed stats */}
-      <group position={[0, -0.5, 0]}>
-        <Text
-          position={[-3, 0, 0]}
-          fontSize={0.35}
-          color="#888888"
-          anchorX="left"
-          anchorY="middle"
-        >
-          Words: {result.wordsTyped} · Errors: {result.errors}
-        </Text>
-      </group>
-
-      {/* Leaderboard */}
-      <Text
-        position={[-3, -1.5, 0]}
-        fontSize={0.5}
-        color="#ffd60a"
-        anchorX="left"
-        anchorY="middle"
-      >
-        TOP 5 SCORES
-      </Text>
-
-      <group position={[-3, -2.2, 0]}>
-        {leaderboard.slice(0, 5).map((score, i) => (
-          <Text
-            key={i}
-            position={[0, -i * 0.35, 0]}
-            fontSize={0.25}
-            color={i === 0 ? '#ff00ff' : '#00f5d4'}
-            anchorX="left"
-            anchorY="middle"
-          >
-            {i + 1}. {score.wpm} WPM ({score.accuracy}%)
-          </Text>
-        ))}
-      </group>
+          <h2 className="text-lg font-mono font-bold mb-2" style={{ color: '#ffd60a' }}>TOP 5 SCORES</h2>
+          <div className="text-xs space-y-1">
+            {leaderboard.slice(0, 5).map((score, i) => (
+              <p key={i} style={{ color: i === 0 ? '#ff00ff' : '#00f5d4' }}>
+                {i + 1}. {score.wpm} WPM ({score.accuracy}%)
+              </p>
+            ))}
+          </div>
+        </div>
+      </Html>
 
       {/* Return button */}
       <group
@@ -192,15 +110,11 @@ function ResultContent({ result, onReturnHome }: ResultSceneProps) {
             emissiveIntensity={0.5}
           />
         </mesh>
-        <Text
-          position={[0, 0, 0.1]}
-          fontSize={0.3}
-          color="#0d0d0d"
-          anchorX="center"
-          anchorY="middle"
-        >
-          RETURN TO HOME
-        </Text>
+        <Html position={[0, 0, 0.1]} distanceFactor={3}>
+          <p className="text-sm font-mono font-bold pointer-events-none" style={{ color: '#0d0d0d' }}>
+            RETURN TO HOME
+          </p>
+        </Html>
       </group>
     </>
   );
