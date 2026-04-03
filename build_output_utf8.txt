@@ -1,0 +1,56 @@
+﻿
+> my-project@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 13.6s
+  Skipping validation of types
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/3) ...
+node.exe : Error occurred 
+prerendering page "/". Read more: http
+s://nextjs.org/docs/messages/prerender
+-error
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : 
+NotSpeci    fied: (Error occurred 
+...prerender    -error:String) [], 
+RemoteException
+    + FullyQualifiedErrorId : 
+NativeCo    mmandError
+ 
+TypeError: Cannot read properties of 
+undefined (reading 
+'ReactCurrentBatchConfig')
+    at b.exports (Z:\TypeRush-main\.ne
+xt\server\chunks\ssr\[root-of-the-serv
+er]__accb1765._.js:1:14354)
+    at <unknown> (Z:\TypeRush-main\.ne
+xt\server\chunks\ssr\[root-of-the-serv
+er]__accb1765._.js:227:272260)
+    at module evaluation (Z:\TypeRush-
+main\.next\server\chunks\ssr\[root-of-
+the-server]__accb1765._.js:227:274802)
+    at instantiateModule (Z:\TypeRush-
+main\.next\server\chunks\ssr\[turbopac
+k]_runtime.js:740:9)
+    at 
+getOrInstantiateModuleFromParent (Z:\T
+ypeRush-main\.next\server\chunks\ssr\[
+turbopack]_runtime.js:763:12)
+    at Context.commonJsRequire [as r] 
+(Z:\TypeRush-main\.next\server\chunks\
+ssr\[turbopack]_runtime.js:249:12) {
+  digest: '3689729573'
+}
+Export encountered an error on /page: 
+/, exiting the build.
+Γ¿» Next.js build worker exited with 
+code: 1 and signal: null
