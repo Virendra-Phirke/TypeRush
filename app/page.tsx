@@ -6,7 +6,11 @@ import { HomeScene } from '@/components/scenes/HomeScene';
 import { TestScene } from '@/components/scenes/TestScene';
 import { ResultScene } from '@/components/scenes/ResultScene';
 import { InputLabScene } from '@/components/scenes/InputLabScene';
-import { Background3D } from '@/components/3d/Background3D';
+import dynamic from 'next/dynamic';
+
+const Background3D = dynamic(() => import('@/components/3d/Background3D').then(m => m.Background3D), { 
+  ssr: false 
+});
 
 export type GameMode = 'timed' | 'words' | 'quote' | 'custom' | 'zen' | 'sudden-death';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
