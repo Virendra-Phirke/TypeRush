@@ -110,6 +110,10 @@ async function apiStartRoom(code: string, playerId: string): Promise<RoomState> 
   return data.room as RoomState;
 }
 
+function isTimedOrSuddenDeath(mode: MultiplayerMode) {
+  return mode === 'timed' || mode === 'sudden-death';
+}
+
 export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps) {
   const playerId = useMemo(() => getOrCreatePlayerId(), []);
   const [joinCode, setJoinCode] = useState('');
@@ -237,6 +241,12 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
 
   const handleSaveHostConfig = async () => {
     if (!activeRoom || !isHost) return;
+    const sanitizedCustomText = hostCustomText.replace(/\s+/g, ' ').trim();
+    if (isTimedOrSuddenDeath(hostMode) && sanitizedCustomText.length > 0 && sanitizedCustomText.length < 10) {
+      setError('Custom text must be at least 10 characters.');
+      return;
+    }
+
     setError(null);
     setIsLoading(true);
     try {
@@ -245,7 +255,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
         difficulty: hostDifficulty,
         duration: hostMode === 'timed' ? hostDuration : undefined,
         wordCount: hostMode === 'words' ? hostWordCount : undefined,
-        customText: hostMode === 'timed' || hostMode === 'sudden-death' ? hostCustomText : undefined,
+        customText: isTimedOrSuddenDeath(hostMode) ? sanitizedCustomText : undefined,
       });
       setActiveRoom(room);
       setHasUnsavedConfigChanges(false);
@@ -258,9 +268,27 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
 
   const handleStartRace = async () => {
     if (!activeRoom || !isHost) return;
+    const sanitizedCustomText = hostCustomText.replace(/\s+/g, ' ').trim();
+    if (isTimedOrSuddenDeath(hostMode) && sanitizedCustomText.length > 0 && sanitizedCustomText.length < 10) {
+      setError('Custom text must be at least 10 characters.');
+      return;
+    }
+
     setError(null);
     setIsLoading(true);
     try {
+      if (hasUnsavedConfigChanges) {
+        const updated = await apiConfigureRoom(activeRoom.code, playerId, {
+          mode: hostMode,
+          difficulty: hostDifficulty,
+          duration: hostMode === 'timed' ? hostDuration : undefined,
+          wordCount: hostMode === 'words' ? hostWordCount : undefined,
+          customText: isTimedOrSuddenDeath(hostMode) ? sanitizedCustomText : undefined,
+        });
+        setActiveRoom(updated);
+        setHasUnsavedConfigChanges(false);
+      }
+
       const started = await apiStartRoom(activeRoom.code, playerId);
       setActiveRoom(started);
     } catch (err) {

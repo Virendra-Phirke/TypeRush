@@ -163,6 +163,13 @@ export function configureRoom(code: string, playerId: string, config: Multiplaye
     return { room: null as RoomState | null, status: 409, error: 'Match already started.' };
   }
 
+  if (config.mode === 'timed' || config.mode === 'sudden-death') {
+    const sanitizedCustomText = (config.customText || '').replace(/\s+/g, ' ').trim();
+    if (sanitizedCustomText.length > 0 && sanitizedCustomText.length < 10) {
+      return { room: null as RoomState | null, status: 400, error: 'Custom text must be at least 10 characters.' };
+    }
+  }
+
   const normalized: MultiplayerRoomConfig = {
     mode: config.mode,
     difficulty: config.difficulty,
