@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRoom, joinRoom, leaveRoom } from '../store';
+import { configureRoom, getRoom, joinRoom, leaveRoom } from '../store';
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -31,6 +31,38 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
+    return NextResponse.json({ room: result.room });
+  }
+
+  if (action === 'configure') {
+    const config = body?.config;
+    if (!config || typeof config !== 'object') {
+      return NextResponse.json({ error: 'config is required.' }, { status: 400 });
+    }
+
+    const mode = typeof config.mode === 'string' ? config.mode : '';
+    const difficulty = typeof config.difficulty === 'string' ? config.difficulty : '';
+    const duration = typeof config.duration === 'number' ? config.duration : undefined;
+    const wordCount = typeof config.wordCount === 'number' ? config.wordCount : undefined;
+
+    const allowedModes = new Set(['timed', 'words', 'quote', 'sudden-death', 'zen']);
+    const allowedDifficulties = new Set(['easy', 'medium', 'hard', 'insane']);
+
+    if (!allowedModes.has(mode) || !allowedDifficulties.has(difficulty)) {
+      return NextResponse.json({ error: 'Invalid room config.' }, { status: 400 });
+    }
+
+    const result = configureRoom(code.toUpperCase(), playerId, {
+      mode: mode as 'timed' | 'words' | 'quote' | 'sudden-death' | 'zen',
+      difficulty: difficulty as 'easy' | 'medium' | 'hard' | 'insane',
+      duration,
+      wordCount,
+    });
+
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+
     return NextResponse.json({ room: result.room });
   }
 

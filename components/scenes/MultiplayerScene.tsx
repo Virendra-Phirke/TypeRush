@@ -2,12 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import type { Difficulty, GameMode, TestConfig } from '@/app/page';
 
 interface MultiplayerSceneProps {
   onBack: () => void;
+  onStartRace: (config: TestConfig) => void;
 }
 
 type RoomStatus = 'waiting' | 'ready';
+
+type MultiplayerMode = Extract<GameMode, 'timed' | 'words' | 'quote' | 'sudden-death' | 'zen'>;
 
 interface RoomState {
   code: string;
@@ -15,6 +19,13 @@ interface RoomState {
   guestId?: string;
   createdAt: number;
   status: RoomStatus;
+  config: {
+    mode: MultiplayerMode;
+    difficulty: Difficulty;
+    duration?: number;
+    wordCount?: number;
+  };
+  sharedPassage: string;
 }
 
 const PLAYER_KEY = 'typeRush.multiplayer.playerId';
@@ -77,16 +88,38 @@ async function apiLeaveRoom(code: string, playerId: string): Promise<void> {
   await parseJsonOrThrow(response);
 }
 
-export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
+async function apiConfigureRoom(code: string, playerId: string, config: RoomState['config']): Promise<RoomState> {
+  const response = await fetch(`/api/multiplayer/rooms/${code}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'configure', playerId, config }),
+  });
+  const data = await parseJsonOrThrow(response);
+  return data.room as RoomState;
+}
+
+export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps) {
   const playerId = useMemo(() => getOrCreatePlayerId(), []);
   const [joinCode, setJoinCode] = useState('');
   const [activeRoom, setActiveRoom] = useState<RoomState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hostMode, setHostMode] = useState<MultiplayerMode>('timed');
+  const [hostDifficulty, setHostDifficulty] = useState<Difficulty>('medium');
+  const [hostDuration, setHostDuration] = useState(60);
+  const [hostWordCount, setHostWordCount] = useState(50);
 
   const isHost = activeRoom?.hostId === playerId;
   const isGuest = activeRoom?.guestId === playerId;
+
+  useEffect(() => {
+    if (!activeRoom) return;
+    setHostMode(activeRoom.config.mode);
+    setHostDifficulty(activeRoom.config.difficulty);
+    setHostDuration(activeRoom.config.duration ?? 60);
+    setHostWordCount(activeRoom.config.wordCount ?? 50);
+  }, [activeRoom]);
 
   useEffect(() => {
     if (!activeRoom) return;
@@ -166,6 +199,36 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
 
     setActiveRoom(null);
     setJoinCode('');
+  };
+
+  const handleSaveHostConfig = async () => {
+    if (!activeRoom || !isHost) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      const room = await apiConfigureRoom(activeRoom.code, playerId, {
+        mode: hostMode,
+        difficulty: hostDifficulty,
+        duration: hostMode === 'timed' ? hostDuration : undefined,
+        wordCount: hostMode === 'words' ? hostWordCount : undefined,
+      });
+      setActiveRoom(room);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to save room config.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStartRace = () => {
+    if (!activeRoom) return;
+    onStartRace({
+      mode: activeRoom.config.mode,
+      difficulty: activeRoom.config.difficulty,
+      duration: activeRoom.config.duration,
+      wordCount: activeRoom.config.wordCount,
+      fixedPassage: activeRoom.sharedPassage,
+    });
   };
 
   return (
@@ -250,8 +313,87 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
               </div>
             </div>
 
+            {isHost && (
+              <div className="mt-5 border border-[#2a2a2a] bg-[#121212] rounded-lg p-4">
+                <p className="text-[#ffd60a] text-xs tracking-[0.15em] mb-3">HOST MATCH SETTINGS</p>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <select
+                    value={hostMode}
+                    onChange={(e) => setHostMode(e.target.value as MultiplayerMode)}
+                    className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
+                  >
+                    <option value="timed">Timed</option>
+                    <option value="words">Words</option>
+                    <option value="quote">Quote</option>
+                    <option value="zen">Zen</option>
+                    <option value="sudden-death">Sudden Death</option>
+                  </select>
+
+                  <select
+                    value={hostDifficulty}
+                    onChange={(e) => setHostDifficulty(e.target.value as Difficulty)}
+                    className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                    <option value="insane">Insane</option>
+                  </select>
+
+                  {hostMode === 'timed' && (
+                    <input
+                      type="number"
+                      min={15}
+                      max={300}
+                      step={15}
+                      value={hostDuration}
+                      onChange={(e) => setHostDuration(Number(e.target.value) || 60)}
+                      className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
+                      placeholder="Duration (sec)"
+                    />
+                  )}
+
+                  {hostMode === 'words' && (
+                    <input
+                      type="number"
+                      min={10}
+                      max={300}
+                      step={5}
+                      value={hostWordCount}
+                      onChange={(e) => setHostWordCount(Number(e.target.value) || 50)}
+                      className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
+                      placeholder="Word count"
+                    />
+                  )}
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={handleSaveHostConfig}
+                    disabled={isLoading}
+                    className="px-4 py-2 rounded border-2 border-[#ffd60a] text-[#ffd60a] font-bold"
+                  >
+                    {isLoading ? 'Saving...' : 'Save Match Settings'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-5 border border-[#2a2a2a] bg-[#121212] rounded-lg p-4">
+              <p className="text-[#7f7f7f] mb-1 text-xs">SHARED RACE TEXT PREVIEW</p>
+              <p className="text-[#e5fff9] text-sm line-clamp-3">{activeRoom.sharedPassage}</p>
+            </div>
+
             {activeRoom.status === 'ready' && (
-              <p className="text-[#00f5d4] mt-4 text-sm">Both players connected. 1v1 room is ready.</p>
+              <div className="mt-4 flex items-center gap-3">
+                <p className="text-[#00f5d4] text-sm">Both players connected. 1v1 room is ready.</p>
+                <button
+                  onClick={handleStartRace}
+                  className="px-4 py-2 rounded border-2 border-[#00f5d4] text-[#00f5d4] font-bold"
+                >
+                  Start Shared Race
+                </button>
+              </div>
             )}
 
             <div className="mt-5">

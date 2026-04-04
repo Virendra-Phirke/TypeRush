@@ -37,6 +37,7 @@ export interface TestConfig {
   duration?: number; // For timed mode (seconds)
   wordCount?: number; // For words mode
   customText?: string; // For custom mode
+  fixedPassage?: string;
 }
 
 export interface TestResult {
@@ -104,6 +105,11 @@ export default function Home() {
     setCurrentScreen('multiplayer');
   };
 
+  const handleStartMultiplayerRace = (config: TestConfig) => {
+    setTestConfig(config);
+    setCurrentScreen('test');
+  };
+
   return (
     <main className="w-full h-screen bg-[#050505] overflow-hidden relative">
       {shouldRenderBackground ? <Background3D /> : null}
@@ -169,7 +175,7 @@ export default function Home() {
             transition={{ duration: 0.4, ease: 'easeInOut' }}
             className="absolute inset-0"
           >
-            <MultiplayerScene onBack={handleReturnHome} />
+            <MultiplayerScene onBack={handleReturnHome} onStartRace={handleStartMultiplayerRace} />
           </motion.div>
         )}
       </AnimatePresence>

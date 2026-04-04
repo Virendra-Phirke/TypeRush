@@ -72,6 +72,10 @@ function getNextQuoteSeed(): number {
 }
 
 function generatePassage(config: TestConfig, dictionaryWords: string[], quoteSeed: number): string {
+  if (config.fixedPassage && config.fixedPassage.trim().length > 0) {
+    return config.fixedPassage.trim();
+  }
+
   if (config.mode === 'custom') {
     const input = config.customText?.trim() || '';
     return input.length > 0 ? input.replace(/\s+/g, ' ').trim() : 'Paste custom text in Home and start again.';
