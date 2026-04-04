@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, type Variants } from 'framer-motion';
-import type { TestConfig, GameMode, Difficulty, ContentTopic } from '@/app/page';
+import type { TestConfig, GameMode, Difficulty } from '@/app/page';
 
 interface HomeSceneProps {
   onStartTest: (config: TestConfig) => void;
@@ -61,14 +61,6 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   insane: 'Insane'
 };
 
-const TOPIC_OPTIONS: Array<{ key: ContentTopic; label: string }> = [
-  { key: 'general', label: 'General' },
-  { key: 'web-dev', label: 'Web Dev' },
-  { key: 'ai-ml', label: 'AI / ML' },
-  { key: 'cloud-devops', label: 'Cloud / DevOps' },
-  { key: 'cybersecurity', label: 'Cybersecurity' },
-];
-
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
@@ -85,7 +77,6 @@ const itemVariants: Variants = {
 export function HomeScene({ onStartTest, onOpenInputLab }: HomeSceneProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>('timed');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
-  const [selectedTopic, setSelectedTopic] = useState<ContentTopic>('general');
   const [selectedOption, setSelectedOption] = useState(0);
   const [customText, setCustomText] = useState('');
 
@@ -101,8 +92,7 @@ export function HomeScene({ onStartTest, onOpenInputLab }: HomeSceneProps) {
     const modeInfo = MODE_CONFIG[selectedMode];
     const baseConfig = {
       mode: selectedMode,
-      difficulty: selectedDifficulty,
-      topic: selectedTopic
+      difficulty: selectedDifficulty
     };
 
     if (selectedMode === 'timed') {
@@ -193,28 +183,6 @@ export function HomeScene({ onStartTest, onOpenInputLab }: HomeSceneProps) {
           </motion.div>
 
         </div>
-
-        {selectedMode === 'quote' && (
-          <motion.div variants={itemVariants} className="w-full max-w-3xl mt-8">
-            <p className="text-[#ffd60a] text-xs text-center mb-3 tracking-[0.15em] font-bold">CONTENT TOPIC</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {TOPIC_OPTIONS.map((topic) => {
-                const isSelected = selectedTopic === topic.key;
-                return (
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    key={topic.key}
-                    onClick={() => setSelectedTopic(topic.key)}
-                    className={'px-4 py-2 rounded-full border-2 text-xs md:text-sm font-bold tracking-[0.08em] transition-colors ' + (isSelected ? 'bg-[#00f5d4] border-[#00f5d4] text-[#0d0d0d]' : 'bg-[#1a1a1a] border-[#333] text-[#00f5d4] hover:border-[#00f5d4]/50')}
-                  >
-                    {topic.label}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
 
         {/* Option selector */}
         <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-3 mt-8 h-10">
