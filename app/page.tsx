@@ -22,6 +22,10 @@ const InputLabScene = dynamic(() => import('@/components/scenes/InputLabScene').
   ssr: false,
 });
 
+const MultiplayerScene = dynamic(() => import('@/components/scenes/MultiplayerScene').then((m) => m.MultiplayerScene), {
+  ssr: false,
+});
+
 export type GameMode = 'timed' | 'words' | 'quote' | 'custom' | 'zen' | 'sudden-death';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
 export type ContentTopic = 'general' | 'web-dev' | 'ai-ml' | 'cloud-devops' | 'cybersecurity';
@@ -50,7 +54,7 @@ export interface TestResult {
 }
 
 export default function Home() {
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'test' | 'results' | 'input-lab'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'test' | 'results' | 'input-lab' | 'multiplayer'>('home');
   const [testConfig, setTestConfig] = useState<TestConfig | null>(null);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [shouldRenderBackground, setShouldRenderBackground] = useState(false);
@@ -96,6 +100,10 @@ export default function Home() {
     setCurrentScreen('input-lab');
   };
 
+  const handleOpenMultiplayer = () => {
+    setCurrentScreen('multiplayer');
+  };
+
   return (
     <main className="w-full h-screen bg-[#050505] overflow-hidden relative">
       {shouldRenderBackground ? <Background3D /> : null}
@@ -109,7 +117,7 @@ export default function Home() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="absolute inset-0"
           >
-            <HomeScene onStartTest={handleStartTest} onOpenInputLab={handleOpenInputLab} />
+            <HomeScene onStartTest={handleStartTest} onOpenInputLab={handleOpenInputLab} onOpenMultiplayer={handleOpenMultiplayer} />
           </motion.div>
         )}
         {currentScreen === 'test' && testConfig && (
@@ -150,6 +158,18 @@ export default function Home() {
             className="absolute inset-0"
           >
             <InputLabScene onBack={handleReturnHome} />
+          </motion.div>
+        )}
+        {currentScreen === 'multiplayer' && (
+          <motion.div
+            key="multiplayer"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.4, ease: 'easeInOut' }}
+            className="absolute inset-0"
+          >
+            <MultiplayerScene onBack={handleReturnHome} />
           </motion.div>
         )}
       </AnimatePresence>

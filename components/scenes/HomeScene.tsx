@@ -7,6 +7,7 @@ import type { TestConfig, GameMode, Difficulty } from '@/app/page';
 interface HomeSceneProps {
   onStartTest: (config: TestConfig) => void;
   onOpenInputLab: () => void;
+  onOpenMultiplayer: () => void;
 }
 
 const MODE_CONFIG: Record<GameMode, { label: string; description: string; options: number[]; optionLabels: string[] }> = {
@@ -74,7 +75,7 @@ const itemVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
 };
 
-export function HomeScene({ onStartTest, onOpenInputLab }: HomeSceneProps) {
+export function HomeScene({ onStartTest, onOpenInputLab, onOpenMultiplayer }: HomeSceneProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>('timed');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
   const [selectedOption, setSelectedOption] = useState(0);
@@ -245,6 +246,15 @@ export function HomeScene({ onStartTest, onOpenInputLab }: HomeSceneProps) {
             className="px-8 py-3 rounded-lg border-2 border-[#ffd60a] text-[#ffd60a] bg-[#121212]/80 text-sm md:text-base font-bold tracking-[0.12em]"
           >
             OPEN KEYBOARD + MOUSE TEST LAB
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.04, boxShadow: '0 0 28px rgba(255,77,109,0.45)' }}
+            whileTap={{ scale: 0.96 }}
+            onClick={onOpenMultiplayer}
+            className="px-8 py-3 rounded-lg border-2 border-[#ff4d6d] text-[#ff4d6d] bg-[#121212]/80 text-sm md:text-base font-bold tracking-[0.12em]"
+          >
+            OPEN 1V1 MULTIPLAYER LOBBY
           </motion.button>
         </motion.div>
       </motion.div>
