@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build:zen-dictionary": "node generate-dict.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -18,6 +18,40 @@ interface StoredScore {
   difficulty: string;
 }
 
+function LetterAccuracyPanel({
+  letterAccuracy,
+}: {
+  letterAccuracy?: Record<string, { attempts: number; correct: number; accuracy: number }>;
+}) {
+  if (!letterAccuracy) return null;
+
+  const entries = Object.entries(letterAccuracy)
+    .map(([letter, stats]) => ({ letter: letter.toUpperCase(), ...stats }))
+    .filter((item) => item.attempts > 0)
+    .sort((a, b) => {
+      if (a.accuracy !== b.accuracy) return a.accuracy - b.accuracy;
+      return b.attempts - a.attempts;
+    })
+    .slice(0, 10);
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="w-full max-w-lg bg-[#1a1a1a] rounded-2xl border-2 border-[#333] p-6 mb-12 shadow-xl">
+      <h3 className="text-[#ffd60a] text-sm tracking-widest text-center mb-6">LETTER ACCURACY (LOWEST FIRST)</h3>
+      <div className="flex flex-col gap-2">
+        {entries.map((entry) => (
+          <div key={entry.letter} className="flex items-center justify-between text-sm border-b border-[#333] pb-2 last:border-0 last:pb-0">
+            <span className="text-[#00f5d4] font-bold text-lg w-8 text-center">{entry.letter}</span>
+            <span className="text-[#888] flex-1 ml-3">{entry.correct}/{entry.attempts} correct</span>
+            <span className={entry.accuracy < 70 ? 'text-[#ff4d6d] font-bold' : 'text-[#ffd60a] font-bold'}>{entry.accuracy}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function WpmHistoryChart({ history, errorHistory, duration }: { history: number[]; errorHistory?: number[]; duration: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -187,7 +221,7 @@ export function ResultScene({ result, onReturnHome }: ResultSceneProps) {
 
   const stats = [
     { label: 'WPM', value: result.wpm, color: '#00f5d4' },
-    { label: 'ACCURACY', value: `${result.accuracy}%`, color: '#ffd60a' },
+    { label: result.config.mode === 'zen' ? 'WORD ACCURACY' : 'ACCURACY', value: `${result.accuracy}%`, color: '#ffd60a' },
     { label: 'TIME', value: `${(result.timeElapsed / 1000).toFixed(1)}s`, color: '#00f5d4' },
     { label: 'ERRORS', value: result.errors, color: '#ff4d6d' }
   ];
@@ -266,6 +300,10 @@ export function ResultScene({ result, onReturnHome }: ResultSceneProps) {
               <div className="text-[#888] text-center text-sm">No scores recorded yet.</div>
             )}
           </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="w-full flex justify-center">
+          <LetterAccuracyPanel letterAccuracy={result.letterAccuracy} />
         </motion.div>
 
         <motion.div variants={itemVariants} className="flex gap-6">

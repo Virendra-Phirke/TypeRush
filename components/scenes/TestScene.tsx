@@ -26,6 +26,39 @@ interface TypingState {
   accuracy: number;
 }
 
+type LetterStatsMap = Record<string, { attempts: number; correct: number }>;
+
+function normalizeZenWord(word: string): string {
+  return word
+    .toLowerCase()
+    .replace(/[^a-z']/g, '')
+    .replace(/^'+|'+$/g, '');
+}
+
+function isMeaningfulZenWord(word: string, dictionary: Set<string>): boolean {
+  if (!word) return false;
+
+  if (!/^[a-z']+$/.test(word)) return false;
+
+  const obviousNonsense = ['asdf', 'qwerty', 'zxcv', 'poiuy', 'lkjhg', 'mnbv'];
+  if (obviousNonsense.some((token) => word.includes(token))) return false;
+
+  const directKnown = dictionary.has(word);
+  if (directKnown) return true;
+
+  // Try simple suffix stripping so common inflections are accepted.
+  const suffixes = ['ing', 'ed', 'es', 's', 'ly', 'er'] as const;
+  for (const suffix of suffixes) {
+    if (word.length > suffix.length + 2 && word.endsWith(suffix)) {
+      const base = word.slice(0, -suffix.length);
+      if (dictionary.has(base)) return true;
+      if (suffix === 'ing' && base.endsWith('y') && dictionary.has(base.slice(0, -1) + 'ie')) return true;
+    }
+  }
+
+  return false;
+}
+
 function generatePassage(config: TestConfig): string {
   if (config.mode === 'custom') {
     const input = config.customText?.trim() || '';
@@ -48,6 +81,8 @@ function generatePassage(config: TestConfig): string {
 
 export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
   const [passage, setPassage] = useState(() => generatePassage(config));
+  const [zenInput, setZenInput] = useState('');
+  const [zenCurrentWord, setZenCurrentWord] = useState('');
   const [typingState, setTypingState] = useState<TypingState>({
     currentIndex: 0,
     correctChars: 0,
@@ -69,13 +104,95 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
   const wpmHistoryRef = useRef<number[]>([]);
   const errorHistoryRef = useRef<number[]>([]);
+  const letterStatsRef = useRef<LetterStatsMap>({});
   
   const particleSystemRef = useRef<any>(null);
+  const zenWordDictionaryRef = useRef<Set<string>>(
+    new Set([
+      ...WORD_BANKS.easy,
+      ...WORD_BANKS.medium,
+      ...WORD_BANKS.hard,
+      ...WORD_BANKS.insane,
+    ].map((w) => w.toLowerCase()))
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadZenDictionary = async () => {
+      try {
+        const response = await fetch('/zenDictionary.json');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!Array.isArray(data)) return;
+
+        const words = data
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.toLowerCase().trim())
+          .filter((item) => item.length > 0);
+
+        if (!cancelled && words.length > 0) {
+          zenWordDictionaryRef.current = new Set(words);
+        }
+      } catch {
+        // Keep fallback dictionary when runtime dictionary fails to load.
+      }
+    };
+
+    loadZenDictionary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const calculateWPM = useCallback((chars: number, timeMs: number) => {
     if (timeMs < 1000) return 0;
     const minutes = timeMs / 60000;
     return Math.round((chars / 5) / minutes);
+  }, []);
+
+  const applyZenWordResult = useCallback((state: TypingState, isCorrectWord: boolean) => {
+    const newTotalWords = state.totalChars + 1;
+    const newCorrectWords = state.correctChars + (isCorrectWord ? 1 : 0);
+    const newErrors = newTotalWords - newCorrectWords;
+    const timeElapsed = Date.now() - state.startTime;
+    const minutes = Math.max(timeElapsed / 60000, 1 / 60000);
+    const newWPM = Math.round(newCorrectWords / minutes);
+    const newAccuracy = Math.round((newCorrectWords / newTotalWords) * 100);
+
+    return {
+      ...state,
+      correctChars: newCorrectWords,
+      totalChars: newTotalWords,
+      wordsTyped: newTotalWords,
+      errors: newErrors,
+      currentWPM: newWPM,
+      accuracy: newAccuracy,
+      lastKeyTime: Date.now(),
+      currentIndex: state.currentIndex + 1,
+    };
+  }, []);
+
+  const finalizeZenPendingWord = useCallback((state: TypingState, pendingWord: string) => {
+    const normalizedWord = normalizeZenWord(pendingWord);
+    if (!normalizedWord) return state;
+    const isCorrectWord = isMeaningfulZenWord(normalizedWord, zenWordDictionaryRef.current);
+    return applyZenWordResult(state, isCorrectWord);
+  }, [applyZenWordResult]);
+
+  const buildLetterAccuracy = useCallback(() => {
+    const result: Record<string, { attempts: number; correct: number; accuracy: number }> = {};
+    Object.entries(letterStatsRef.current).forEach(([letter, stats]) => {
+      const attempts = stats.attempts;
+      const correct = stats.correct;
+      result[letter] = {
+        attempts,
+        correct,
+        accuracy: attempts > 0 ? Math.round((correct / attempts) * 100) : 0,
+      };
+    });
+    return result;
   }, []);
 
   const finishTest = useCallback((state: TypingState, reason?: string) => {
@@ -95,21 +212,78 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
         timeElapsed,
         config,
         wpmHistory: wpmHistoryRef.current,
-        errorHistory: errorHistoryRef.current
+        errorHistory: errorHistoryRef.current,
+        letterAccuracy: buildLetterAccuracy(),
       });
     }, reason ? 1500 : 0);
-  }, [onComplete, config]);
+  }, [onComplete, config, buildLetterAccuracy]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (isComplete) return;
 
-    const expectedChar = passage[typingState.currentIndex];
     const typedChar = e.key;
 
     if (typedChar === 'Escape') {
       onCancel();
       return;
     }
+
+    if (config.mode === 'zen') {
+      if (typedChar === 'Backspace') {
+        e.preventDefault();
+        setZenInput((prev) => {
+          const next = prev.slice(0, -1);
+          const tail = next.match(/([A-Za-z']+)$/);
+          setZenCurrentWord(tail ? tail[1] : '');
+          return next;
+        });
+        return;
+      }
+
+      if (typedChar.length !== 1 && typedChar !== 'Enter' && typedChar !== 'Tab') {
+        return;
+      }
+
+      e.preventDefault();
+
+      const inputChar = typedChar === 'Enter' || typedChar === 'Tab' ? ' ' : typedChar;
+      const isDelimiter = /\s|[.,!?;:]/.test(inputChar);
+
+      setLastTypedChar(inputChar === ' ' ? 'Space' : inputChar);
+
+      if (!isDelimiter) {
+        setZenInput((prev) => prev + inputChar);
+        if (/[A-Za-z']/.test(inputChar)) {
+          setZenCurrentWord((prev) => prev + inputChar);
+        }
+        setIsError(false);
+        if (particleSystemRef.current) {
+          particleSystemRef.current.emit(true);
+        }
+        return;
+      }
+
+      setZenInput((prev) => prev + inputChar);
+      const normalizedWord = normalizeZenWord(zenCurrentWord);
+      setZenCurrentWord('');
+
+      if (!normalizedWord) {
+        setIsError(false);
+        return;
+      }
+
+      const isCorrectWord = isMeaningfulZenWord(normalizedWord, zenWordDictionaryRef.current);
+      const nextState = applyZenWordResult(typingState, isCorrectWord);
+      setTypingState(nextState);
+      setIsError(!isCorrectWord);
+
+      if (particleSystemRef.current) {
+        particleSystemRef.current.emit(isCorrectWord);
+      }
+      return;
+    }
+
+    const expectedChar = passage[typingState.currentIndex];
 
     if (typedChar.length !== 1 || /[^a-zA-Z0-9\s.,!?'`:;\-]/.test(typedChar)) {
       return;
@@ -118,6 +292,15 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
     e.preventDefault();
 
     const isCorrect = typedChar === expectedChar;
+    const expectedLetter = expectedChar?.toLowerCase();
+    if (expectedLetter && /^[a-z]$/.test(expectedLetter)) {
+      const prev = letterStatsRef.current[expectedLetter] ?? { attempts: 0, correct: 0 };
+      letterStatsRef.current[expectedLetter] = {
+        attempts: prev.attempts + 1,
+        correct: prev.correct + (isCorrect ? 1 : 0),
+      };
+    }
+
     const newIndex = isCorrect ? typingState.currentIndex + 1 : typingState.currentIndex;
     const timeElapsed = Date.now() - typingState.startTime;
     const newCorrectChars = typingState.correctChars + (isCorrect ? 1 : 0);
@@ -177,7 +360,7 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
     if (shouldComplete && !isComplete) {
       finishTest(newState);
     }
-  }, [passage, typingState, isComplete, timeRemaining, config, calculateWPM, finishTest, onCancel]);
+  }, [passage, typingState, isComplete, timeRemaining, config, calculateWPM, finishTest, onCancel, zenCurrentWord, applyZenWordResult]);
 
   useEffect(() => {
     if (isComplete) return;
@@ -282,7 +465,17 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
         layout
         className="flex-1 flex items-center justify-center w-full max-w-5xl relative z-20 perspective-1000"
       >
-        <FloatingText text={passage} currentIndex={typingState.currentIndex} />
+        {config.mode === 'zen' ? (
+          <div className="w-full max-w-3xl rounded-2xl border border-[#333] bg-[#101010]/90 p-6">
+            <p className="text-[#ffd60a] text-xs tracking-widest mb-3">ZEN FREE TYPING</p>
+            <p className="text-[#666] text-sm mb-4">Type freely. Accuracy is based on valid words. Press Finish when done.</p>
+            <div className="min-h-40 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-[#0b0b0b] border border-[#222] p-4 text-[#e5fff9]">
+              {zenInput || 'Start typing...'}
+            </div>
+          </div>
+        ) : (
+          <FloatingText text={passage} currentIndex={typingState.currentIndex} />
+        )}
         <ParticleSystem ref={particleSystemRef} />
       </motion.div>
 
@@ -299,8 +492,20 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
       </motion.div>
 
       {/* Cancel button hint */}
-      <div className="text-[#555] text-xs relative z-20">
-        Press ESC to cancel
+      <div className="text-[#555] text-xs relative z-20 flex items-center gap-3">
+        <span>Press ESC to cancel</span>
+        {config.mode === 'zen' && (
+          <button
+            onClick={() => {
+              const finalState = finalizeZenPendingWord(typingState, zenCurrentWord);
+              setTypingState(finalState);
+              finishTest(finalState);
+            }}
+            className="px-3 py-1 rounded border border-[#00f5d4] text-[#00f5d4] hover:bg-[#00f5d4]/10"
+          >
+            Finish Zen Session
+          </button>
+        )}
       </div>
     </div>
   );
