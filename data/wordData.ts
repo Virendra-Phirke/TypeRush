@@ -84,3 +84,132 @@ export const QUOTES = {
     'Thyroparathyroidectomized is a medical term that defines the excision of both the thyroid and parathyroid glands.'
   ]
 };
+
+type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'insane';
+
+const PARAGRAPH_SUBJECTS = [
+  'A focused developer', 'The design team', 'A curious student', 'The support engineer', 'A patient researcher',
+  'The product manager', 'A careful analyst', 'The startup founder', 'The operations lead', 'A thoughtful writer',
+  'The QA specialist', 'A dedicated learner'
+];
+
+const PARAGRAPH_VERBS = [
+  'reviews', 'improves', 'documents', 'tests', 'refines', 'explains', 'tracks', 'rebuilds', 'optimizes', 'evaluates',
+  'compares', 'summarizes'
+];
+
+const PARAGRAPH_OBJECTS = [
+  'the workflow', 'the release notes', 'the deployment plan', 'the user journey', 'the data model', 'the test strategy',
+  'the error logs', 'the API response', 'the build pipeline', 'the design system', 'the typing session', 'the quality checklist'
+];
+
+const PARAGRAPH_OUTCOMES = [
+  'so the next decision is easier and clearer', 'so the team can move faster without losing quality',
+  'so users feel confident while finishing their tasks', 'so edge cases are handled before release',
+  'so performance remains stable under pressure', 'so everyone understands what to improve next',
+  'so the final result feels reliable and polished', 'so future maintenance becomes simpler and safer'
+];
+
+const QUOTE_OPENERS = [
+  'Great products improve when teams', 'Reliable software appears when engineers', 'Progress compounds when people',
+  'Strong habits are built when developers', 'Meaningful velocity happens when teams', 'Clear thinking emerges when builders',
+  'Long-term quality improves when organizations', 'Technical confidence grows when contributors',
+  'Healthy systems evolve when maintainers', 'Sustainable delivery happens when teams',
+  'Better outcomes arrive when creators', 'Winning execution starts when teams',
+  'User trust grows when products', 'Craftsmanship improves when coders', 'Resilient architecture forms when engineers',
+  'Learning accelerates when teams', 'Innovation becomes practical when makers', 'Consistent progress appears when teams',
+  'Impact increases when builders', 'Collaboration improves when teams', 'Focus deepens when contributors',
+  'Shipping gets easier when teams', 'Momentum rises when engineers', 'Systems stay healthy when teams',
+  'Clarity scales when teams'
+];
+
+const QUOTE_MIDDLES = [
+  'measure real behavior', 'document assumptions', 'review feedback early', 'simplify complex paths',
+  'fix root causes', 'test critical flows', 'share context openly', 'protect user attention',
+  'refactor with purpose', 'validate ideas quickly', 'prioritize reliability', 'design for readability',
+  'automate repetitive checks', 'watch production signals', 'keep interfaces predictable',
+  'treat failures as data', 'write clear acceptance criteria', 'reduce unnecessary dependencies',
+  'keep experiments reversible', 'align on outcomes', 'maintain healthy defaults', 'reduce cognitive load',
+  'practice deliberate iteration', 'own quality together', 'stabilize first, optimize second'
+];
+
+const QUOTE_ENDINGS = [
+  'because trust is earned one decision at a time.', 'because clarity prevents expensive confusion.',
+  'because speed without quality eventually slows down.', 'because consistency is a competitive advantage.',
+  'because simple systems are easier to improve.', 'because evidence beats opinion in the long run.',
+  'because maintainability protects future momentum.', 'because users remember dependable experiences.',
+  'because thoughtful defaults reduce hidden risk.', 'because small improvements compound every week.',
+  'because resilient teams prepare for change.', 'because readable code enables faster collaboration.',
+  'because clear ownership reduces delivery friction.', 'because healthy processes reduce avoidable rework.',
+  'because deliberate practice improves execution.', 'because feedback loops sharpen product judgment.',
+  'because robust testing enables confident releases.', 'because good architecture supports rapid learning.',
+  'because measurable goals keep efforts aligned.', 'because durable solutions outlast quick fixes.',
+  'because careful tradeoffs protect user value.', 'because quality and velocity are partners.',
+  'because focus turns effort into outcomes.', 'because dependable systems create real leverage.',
+  'because disciplined teams ship better work.'
+];
+
+export const QUOTE_POOL_SIZE = QUOTE_OPENERS.length * QUOTE_MIDDLES.length * QUOTE_ENDINGS.length;
+
+function pickSeeded(words: string[], seed: number): string {
+  const index = Math.abs(seed) % words.length;
+  return words[index];
+}
+
+function normalizeDictionaryWords(words: string[]): string[] {
+  return words
+    .map((word) => word.toLowerCase().trim())
+    .filter((word) => /^[a-z]+$/.test(word) && word.length >= 3 && word.length <= 14);
+}
+
+function resolveDifficultyWords(difficulty: DifficultyLevel): string[] {
+  return WORD_BANKS[difficulty] || WORD_BANKS.medium;
+}
+
+export function generateDynamicQuote(seed: number, dictionaryWords: string[] = []): string {
+  const a = Math.imul(seed + 17, 1103515245);
+  const b = Math.imul(seed + 31, 1664525);
+  const c = Math.imul(seed + 73, 1013904223);
+
+  const opener = pickSeeded(QUOTE_OPENERS, a);
+  const middle = pickSeeded(QUOTE_MIDDLES, b);
+  const ending = pickSeeded(QUOTE_ENDINGS, c);
+
+  const dictionary = normalizeDictionaryWords(dictionaryWords);
+  const optionalTerm = dictionary.length > 0 ? pickSeeded(dictionary, a ^ b ^ c) : '';
+
+  if (optionalTerm && optionalTerm.length > 6) {
+    return `${opener} ${middle}, especially around ${optionalTerm}, ${ending}`;
+  }
+
+  return `${opener} ${middle}, ${ending}`;
+}
+
+export function generateMeaningfulParagraph(
+  targetWords: number,
+  difficulty: DifficultyLevel,
+  dictionaryWords: string[] = [],
+  seed = Date.now()
+): string {
+  const fallback = resolveDifficultyWords(difficulty);
+  const dictionary = normalizeDictionaryWords(dictionaryWords);
+  const paragraph: string[] = [];
+
+  let cursor = seed;
+  while (paragraph.join(' ').split(/\s+/).filter(Boolean).length < targetWords) {
+    const subject = pickSeeded(PARAGRAPH_SUBJECTS, cursor++);
+    const verb = pickSeeded(PARAGRAPH_VERBS, cursor++);
+    const object = pickSeeded(PARAGRAPH_OBJECTS, cursor++);
+    const outcome = pickSeeded(PARAGRAPH_OUTCOMES, cursor++);
+
+    const optionalWord = dictionary.length > 0
+      ? pickSeeded(dictionary, cursor++)
+      : pickSeeded(fallback, cursor++);
+
+    paragraph.push(`${subject} ${verb} ${object} with ${optionalWord}, ${outcome}.`);
+
+    if (paragraph.length > 24) break;
+  }
+
+  return paragraph.join(' ');
+}

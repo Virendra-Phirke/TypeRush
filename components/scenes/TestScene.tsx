@@ -6,7 +6,7 @@ import type { TestConfig, TestResult } from '@/app/page';
 import { Keyboard3D } from '@/components/3d/Keyboard3D';
 import { FloatingText } from '@/components/3d/FloatingText';
 import { ParticleSystem } from '@/components/3d/ParticleSystem';
-import { WORD_BANKS, QUOTES } from '@/data/wordData';
+import { WORD_BANKS, generateDynamicQuote, generateMeaningfulParagraph, QUOTE_POOL_SIZE } from '@/data/wordData';
 
 interface TestSceneProps {
   config: TestConfig;
@@ -59,28 +59,38 @@ function isMeaningfulZenWord(word: string, dictionary: Set<string>): boolean {
   return false;
 }
 
-function generatePassage(config: TestConfig): string {
+function getNextQuoteSeed(): number {
+  if (typeof window === 'undefined') {
+    return Math.floor(Math.random() * QUOTE_POOL_SIZE);
+  }
+
+  const storageKey = 'typeRushQuoteCursor';
+  const current = Number(window.localStorage.getItem(storageKey) || '0');
+  const next = Number.isFinite(current) ? (current + 1) % QUOTE_POOL_SIZE : 0;
+  window.localStorage.setItem(storageKey, String(next));
+  return next;
+}
+
+function generatePassage(config: TestConfig, dictionaryWords: string[], quoteSeed: number): string {
   if (config.mode === 'custom') {
     const input = config.customText?.trim() || '';
     return input.length > 0 ? input.replace(/\s+/g, ' ').trim() : 'Paste custom text in Home and start again.';
   }
 
   if (config.mode === 'quote') {
-    const quotes = QUOTES[config.difficulty as keyof typeof QUOTES] || QUOTES.medium;
-    return quotes[Math.floor(Math.random() * quotes.length)];
+    return generateDynamicQuote(quoteSeed, dictionaryWords);
   }
 
-  const words = WORD_BANKS[config.difficulty as keyof typeof WORD_BANKS] || WORD_BANKS.medium;
-  const wordCount = config.mode === 'zen' || config.mode === 'sudden-death' ? 500 : (config.wordCount || 50);
-  let passage = '';
-  for (let i = 0; i < wordCount; i++) {
-    passage += words[Math.floor(Math.random() * words.length)] + ' ';
-  }
-  return passage.trim();
+  const wordTarget = config.mode === 'words' ? (config.wordCount || 50) : 70;
+  const difficulty = config.difficulty;
+  return generateMeaningfulParagraph(wordTarget, difficulty, dictionaryWords, Date.now());
 }
 
 export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
-  const [passage, setPassage] = useState(() => generatePassage(config));
+  const dictionaryWordsRef = useRef<string[]>([]);
+  const [quoteSeed, setQuoteSeed] = useState(() => getNextQuoteSeed());
+  const [dictionaryVersion, setDictionaryVersion] = useState(0);
+  const [passage, setPassage] = useState(() => generatePassage(config, [], quoteSeed));
   const [zenInput, setZenInput] = useState('');
   const [zenCurrentWord, setZenCurrentWord] = useState('');
   const [typingState, setTypingState] = useState<TypingState>({
@@ -133,6 +143,8 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
 
         if (!cancelled && words.length > 0) {
           zenWordDictionaryRef.current = new Set(words);
+          dictionaryWordsRef.current = words;
+          setDictionaryVersion((prev) => prev + 1);
         }
       } catch {
         // Keep fallback dictionary when runtime dictionary fails to load.
@@ -145,6 +157,10 @@ export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setPassage(generatePassage(config, dictionaryWordsRef.current, quoteSeed));
+  }, [config, quoteSeed, dictionaryVersion]);
 
   const calculateWPM = useCallback((chars: number, timeMs: number) => {
     if (timeMs < 1000) return 0;
