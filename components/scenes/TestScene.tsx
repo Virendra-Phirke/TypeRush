@@ -78,12 +78,12 @@ function generatePassage(config: TestConfig, dictionaryWords: string[], quoteSee
   }
 
   if (config.mode === 'quote') {
-    return generateDynamicQuote(quoteSeed, dictionaryWords);
+    return generateDynamicQuote(quoteSeed, dictionaryWords, config.topic || 'general');
   }
 
   const wordTarget = config.mode === 'words' ? (config.wordCount || 50) : 70;
   const difficulty = config.difficulty;
-  return generateMeaningfulParagraph(wordTarget, difficulty, dictionaryWords, Date.now());
+  return generateMeaningfulParagraph(wordTarget, difficulty, dictionaryWords, config.topic || 'general', Date.now());
 }
 
 export function TestScene({ config, onComplete, onCancel }: TestSceneProps) {

@@ -86,6 +86,27 @@ export const QUOTES = {
 };
 
 type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'insane';
+export type TopicDomain = 'general' | 'web-dev' | 'ai-ml' | 'cloud-devops' | 'cybersecurity';
+
+const TOPIC_KEYWORDS: Record<TopicDomain, string[]> = {
+  general: [],
+  'web-dev': [
+    'frontend', 'backend', 'typescript', 'javascript', 'react', 'next', 'node', 'express', 'api', 'graphql',
+    'html', 'css', 'tailwind', 'redux', 'state', 'component', 'routing', 'render', 'dom', 'webhook', 'axios'
+  ],
+  'ai-ml': [
+    'model', 'models', 'dataset', 'datasets', 'training', 'inference', 'neural', 'token', 'embedding',
+    'regression', 'classification', 'vector', 'transformer', 'prompt', 'evaluation', 'feature', 'optimizer', 'loss'
+  ],
+  'cloud-devops': [
+    'azure', 'aws', 'gcp', 'docker', 'kubernetes', 'container', 'containers', 'pod', 'deployment', 'pipeline',
+    'ci', 'cd', 'terraform', 'bicep', 'helm', 'ingress', 'monitoring', 'observability', 'scaling', 'serverless'
+  ],
+  cybersecurity: [
+    'security', 'auth', 'oauth', 'jwt', 'encryption', 'cipher', 'hash', 'token', 'firewall', 'vulnerability',
+    'threat', 'compliance', 'forensics', 'phishing', 'malware', 'incident', 'risk', 'policy', 'trust', 'zero'
+  ],
+};
 
 const PARAGRAPH_SUBJECTS = [
   'A focused developer', 'The design team', 'A curious student', 'The support engineer', 'A patient researcher',
@@ -166,7 +187,19 @@ function resolveDifficultyWords(difficulty: DifficultyLevel): string[] {
   return WORD_BANKS[difficulty] || WORD_BANKS.medium;
 }
 
-export function generateDynamicQuote(seed: number, dictionaryWords: string[] = []): string {
+function resolveTopicDictionary(dictionaryWords: string[], topic: TopicDomain): string[] {
+  const dictionary = normalizeDictionaryWords(dictionaryWords);
+  if (topic === 'general' || dictionary.length === 0) return dictionary;
+
+  const keywords = TOPIC_KEYWORDS[topic];
+  const filtered = dictionary.filter((word) =>
+    keywords.some((keyword) => word === keyword || word.includes(keyword) || keyword.includes(word))
+  );
+
+  return filtered.length > 50 ? filtered : dictionary;
+}
+
+export function generateDynamicQuote(seed: number, dictionaryWords: string[] = [], topic: TopicDomain = 'general'): string {
   const a = Math.imul(seed + 17, 1103515245);
   const b = Math.imul(seed + 31, 1664525);
   const c = Math.imul(seed + 73, 1013904223);
@@ -175,7 +208,7 @@ export function generateDynamicQuote(seed: number, dictionaryWords: string[] = [
   const middle = pickSeeded(QUOTE_MIDDLES, b);
   const ending = pickSeeded(QUOTE_ENDINGS, c);
 
-  const dictionary = normalizeDictionaryWords(dictionaryWords);
+  const dictionary = resolveTopicDictionary(dictionaryWords, topic);
   const optionalTerm = dictionary.length > 0 ? pickSeeded(dictionary, a ^ b ^ c) : '';
 
   if (optionalTerm && optionalTerm.length > 6) {
@@ -189,10 +222,11 @@ export function generateMeaningfulParagraph(
   targetWords: number,
   difficulty: DifficultyLevel,
   dictionaryWords: string[] = [],
+  topic: TopicDomain = 'general',
   seed = Date.now()
 ): string {
   const fallback = resolveDifficultyWords(difficulty);
-  const dictionary = normalizeDictionaryWords(dictionaryWords);
+  const dictionary = resolveTopicDictionary(dictionaryWords, topic);
   const paragraph: string[] = [];
 
   let cursor = seed;

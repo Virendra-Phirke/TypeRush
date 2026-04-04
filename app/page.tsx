@@ -24,10 +24,12 @@ const InputLabScene = dynamic(() => import('@/components/scenes/InputLabScene').
 
 export type GameMode = 'timed' | 'words' | 'quote' | 'custom' | 'zen' | 'sudden-death';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
+export type ContentTopic = 'general' | 'web-dev' | 'ai-ml' | 'cloud-devops' | 'cybersecurity';
 
 export interface TestConfig {
   mode: GameMode;
   difficulty: Difficulty;
+  topic?: ContentTopic;
   duration?: number; // For timed mode (seconds)
   wordCount?: number; // For words mode
   customText?: string; // For custom mode
