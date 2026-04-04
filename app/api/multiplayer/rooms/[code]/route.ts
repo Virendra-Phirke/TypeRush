@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { configureRoom, getRoom, joinRoom, leaveRoom } from '../store';
+import { configureRoom, getRoom, joinRoom, leaveRoom, startRoom } from '../store';
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -68,6 +68,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (action === 'leave') {
     const result = leaveRoom(code.toUpperCase(), playerId);
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    return NextResponse.json({ room: result.room });
+  }
+
+  if (action === 'start') {
+    const result = startRoom(code.toUpperCase(), playerId);
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }

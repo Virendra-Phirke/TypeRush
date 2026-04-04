@@ -1,4 +1,4 @@
-type RoomStatus = 'waiting' | 'ready';
+type RoomStatus = 'waiting' | 'ready' | 'started';
 type GameMode = 'timed' | 'words' | 'quote' | 'sudden-death' | 'zen';
 type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
 
@@ -15,6 +15,7 @@ export interface RoomState {
   guestId?: string;
   createdAt: number;
   status: RoomStatus;
+  startedAt?: number;
   config: MultiplayerRoomConfig;
   sharedPassage: string;
 }
@@ -151,6 +152,10 @@ export function configureRoom(code: string, playerId: string, config: Multiplaye
     return { room: null as RoomState | null, status: 403, error: 'Only host can configure room.' };
   }
 
+  if (room.startedAt) {
+    return { room: null as RoomState | null, status: 409, error: 'Match already started.' };
+  }
+
   const normalized: MultiplayerRoomConfig = {
     mode: config.mode,
     difficulty: config.difficulty,
@@ -183,6 +188,10 @@ export function joinRoom(code: string, playerId: string) {
     return { room, status: 200, error: null };
   }
 
+  if (room.startedAt) {
+    return { room: null as RoomState | null, status: 409, error: 'Match already started.' };
+  }
+
   if (room.guestId && room.guestId !== playerId) {
     return { room: null as RoomState | null, status: 409, error: 'Room is full.' };
   }
@@ -191,6 +200,34 @@ export function joinRoom(code: string, playerId: string) {
     ...room,
     guestId: playerId,
     status: 'ready',
+  };
+
+  roomStore.set(code, updated);
+  return { room: updated, status: 200, error: null };
+}
+
+export function startRoom(code: string, playerId: string) {
+  const room = getRoom(code);
+  if (!room) {
+    return { room: null as RoomState | null, status: 404, error: 'Room not found.' };
+  }
+
+  if (room.hostId !== playerId) {
+    return { room: null as RoomState | null, status: 403, error: 'Only host can start the match.' };
+  }
+
+  if (!room.guestId || room.status !== 'ready') {
+    return { room: null as RoomState | null, status: 409, error: 'Opponent must join before start.' };
+  }
+
+  if (room.startedAt) {
+    return { room, status: 200, error: null };
+  }
+
+  const updated: RoomState = {
+    ...room,
+    status: 'started',
+    startedAt: Date.now(),
   };
 
   roomStore.set(code, updated);

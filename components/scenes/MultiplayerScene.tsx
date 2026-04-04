@@ -9,7 +9,7 @@ interface MultiplayerSceneProps {
   onStartRace: (config: TestConfig) => void;
 }
 
-type RoomStatus = 'waiting' | 'ready';
+type RoomStatus = 'waiting' | 'ready' | 'started';
 
 type MultiplayerMode = Extract<GameMode, 'timed' | 'words' | 'quote' | 'sudden-death' | 'zen'>;
 
@@ -19,6 +19,7 @@ interface RoomState {
   guestId?: string;
   createdAt: number;
   status: RoomStatus;
+  startedAt?: number;
   config: {
     mode: MultiplayerMode;
     difficulty: Difficulty;
@@ -98,6 +99,16 @@ async function apiConfigureRoom(code: string, playerId: string, config: RoomStat
   return data.room as RoomState;
 }
 
+async function apiStartRoom(code: string, playerId: string): Promise<RoomState> {
+  const response = await fetch(`/api/multiplayer/rooms/${code}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'start', playerId }),
+  });
+  const data = await parseJsonOrThrow(response);
+  return data.room as RoomState;
+}
+
 export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps) {
   const playerId = useMemo(() => getOrCreatePlayerId(), []);
   const [joinCode, setJoinCode] = useState('');
@@ -105,6 +116,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasTriggeredStart, setHasTriggeredStart] = useState(false);
   const [hostMode, setHostMode] = useState<MultiplayerMode>('timed');
   const [hostDifficulty, setHostDifficulty] = useState<Difficulty>('medium');
   const [hostDuration, setHostDuration] = useState(60);
@@ -120,6 +132,19 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
     setHostDuration(activeRoom.config.duration ?? 60);
     setHostWordCount(activeRoom.config.wordCount ?? 50);
   }, [activeRoom]);
+
+  useEffect(() => {
+    if (!activeRoom || !activeRoom.startedAt || hasTriggeredStart) return;
+
+    setHasTriggeredStart(true);
+    onStartRace({
+      mode: activeRoom.config.mode,
+      difficulty: activeRoom.config.difficulty,
+      duration: activeRoom.config.duration,
+      wordCount: activeRoom.config.wordCount,
+      fixedPassage: activeRoom.sharedPassage,
+    });
+  }, [activeRoom, hasTriggeredStart, onStartRace]);
 
   useEffect(() => {
     if (!activeRoom) return;
@@ -199,6 +224,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
 
     setActiveRoom(null);
     setJoinCode('');
+    setHasTriggeredStart(false);
   };
 
   const handleSaveHostConfig = async () => {
@@ -220,15 +246,18 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
     }
   };
 
-  const handleStartRace = () => {
-    if (!activeRoom) return;
-    onStartRace({
-      mode: activeRoom.config.mode,
-      difficulty: activeRoom.config.difficulty,
-      duration: activeRoom.config.duration,
-      wordCount: activeRoom.config.wordCount,
-      fixedPassage: activeRoom.sharedPassage,
-    });
+  const handleStartRace = async () => {
+    if (!activeRoom || !isHost) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      const started = await apiStartRoom(activeRoom.code, playerId);
+      setActiveRoom(started);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to start race.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -313,7 +342,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
               </div>
             </div>
 
-            {isHost && (
+            {isHost && !activeRoom.startedAt && (
               <div className="mt-5 border border-[#2a2a2a] bg-[#121212] rounded-lg p-4">
                 <p className="text-[#ffd60a] text-xs tracking-[0.15em] mb-3">HOST MATCH SETTINGS</p>
                 <div className="grid md:grid-cols-2 gap-3">
@@ -387,13 +416,22 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
             {activeRoom.status === 'ready' && (
               <div className="mt-4 flex items-center gap-3">
                 <p className="text-[#00f5d4] text-sm">Both players connected. 1v1 room is ready.</p>
-                <button
-                  onClick={handleStartRace}
-                  className="px-4 py-2 rounded border-2 border-[#00f5d4] text-[#00f5d4] font-bold"
-                >
-                  Start Shared Race
-                </button>
+                {isHost ? (
+                  <button
+                    onClick={handleStartRace}
+                    disabled={isLoading}
+                    className="px-4 py-2 rounded border-2 border-[#00f5d4] text-[#00f5d4] font-bold"
+                  >
+                    {isLoading ? 'Starting...' : 'Start Shared Race'}
+                  </button>
+                ) : (
+                  <span className="text-[#ffd60a] text-sm">Waiting for host to start the race...</span>
+                )}
               </div>
+            )}
+
+            {activeRoom.status === 'started' && (
+              <div className="mt-4 text-[#00f5d4] text-sm">Race started. Syncing both players now...</div>
             )}
 
             <div className="mt-5">
