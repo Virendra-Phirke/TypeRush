@@ -117,6 +117,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasTriggeredStart, setHasTriggeredStart] = useState(false);
+  const [hasUnsavedConfigChanges, setHasUnsavedConfigChanges] = useState(false);
   const [hostMode, setHostMode] = useState<MultiplayerMode>('timed');
   const [hostDifficulty, setHostDifficulty] = useState<Difficulty>('medium');
   const [hostDuration, setHostDuration] = useState(60);
@@ -127,11 +128,15 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
 
   useEffect(() => {
     if (!activeRoom) return;
+
+    // Keep host draft values while editing, otherwise polling would reset controls.
+    if (isHost && hasUnsavedConfigChanges) return;
+
     setHostMode(activeRoom.config.mode);
     setHostDifficulty(activeRoom.config.difficulty);
     setHostDuration(activeRoom.config.duration ?? 60);
     setHostWordCount(activeRoom.config.wordCount ?? 50);
-  }, [activeRoom]);
+  }, [activeRoom, isHost, hasUnsavedConfigChanges]);
 
   useEffect(() => {
     if (!activeRoom || !activeRoom.startedAt || hasTriggeredStart) return;
@@ -239,6 +244,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
         wordCount: hostMode === 'words' ? hostWordCount : undefined,
       });
       setActiveRoom(room);
+      setHasUnsavedConfigChanges(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save room config.');
     } finally {
@@ -348,7 +354,10 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
                 <div className="grid md:grid-cols-2 gap-3">
                   <select
                     value={hostMode}
-                    onChange={(e) => setHostMode(e.target.value as MultiplayerMode)}
+                    onChange={(e) => {
+                      setHostMode(e.target.value as MultiplayerMode);
+                      setHasUnsavedConfigChanges(true);
+                    }}
                     className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
                   >
                     <option value="timed">Timed</option>
@@ -360,7 +369,10 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
 
                   <select
                     value={hostDifficulty}
-                    onChange={(e) => setHostDifficulty(e.target.value as Difficulty)}
+                    onChange={(e) => {
+                      setHostDifficulty(e.target.value as Difficulty);
+                      setHasUnsavedConfigChanges(true);
+                    }}
                     className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
                   >
                     <option value="easy">Easy</option>
@@ -376,7 +388,10 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
                       max={300}
                       step={15}
                       value={hostDuration}
-                      onChange={(e) => setHostDuration(Number(e.target.value) || 60)}
+                      onChange={(e) => {
+                        setHostDuration(Number(e.target.value) || 60);
+                        setHasUnsavedConfigChanges(true);
+                      }}
                       className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
                       placeholder="Duration (sec)"
                     />
@@ -389,7 +404,10 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
                       max={300}
                       step={5}
                       value={hostWordCount}
-                      onChange={(e) => setHostWordCount(Number(e.target.value) || 50)}
+                      onChange={(e) => {
+                        setHostWordCount(Number(e.target.value) || 50);
+                        setHasUnsavedConfigChanges(true);
+                      }}
                       className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
                       placeholder="Word count"
                     />
@@ -404,6 +422,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
                   >
                     {isLoading ? 'Saving...' : 'Save Match Settings'}
                   </button>
+                  {hasUnsavedConfigChanges && <span className="text-[#888] text-xs self-center">Unsaved changes</span>}
                 </div>
               </div>
             )}
