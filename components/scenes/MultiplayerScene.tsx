@@ -25,6 +25,7 @@ interface RoomState {
     difficulty: Difficulty;
     duration?: number;
     wordCount?: number;
+    customText?: string;
   };
   sharedPassage: string;
 }
@@ -122,6 +123,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
   const [hostDifficulty, setHostDifficulty] = useState<Difficulty>('medium');
   const [hostDuration, setHostDuration] = useState(60);
   const [hostWordCount, setHostWordCount] = useState(50);
+  const [hostCustomText, setHostCustomText] = useState('');
 
   const isHost = activeRoom?.hostId === playerId;
   const isGuest = activeRoom?.guestId === playerId;
@@ -136,6 +138,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
     setHostDifficulty(activeRoom.config.difficulty);
     setHostDuration(activeRoom.config.duration ?? 60);
     setHostWordCount(activeRoom.config.wordCount ?? 50);
+    setHostCustomText(activeRoom.config.customText ?? '');
   }, [activeRoom, isHost, hasUnsavedConfigChanges]);
 
   useEffect(() => {
@@ -242,6 +245,7 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
         difficulty: hostDifficulty,
         duration: hostMode === 'timed' ? hostDuration : undefined,
         wordCount: hostMode === 'words' ? hostWordCount : undefined,
+        customText: hostMode === 'timed' || hostMode === 'sudden-death' ? hostCustomText : undefined,
       });
       setActiveRoom(room);
       setHasUnsavedConfigChanges(false);
@@ -410,6 +414,19 @@ export function MultiplayerScene({ onBack, onStartRace }: MultiplayerSceneProps)
                       }}
                       className="rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
                       placeholder="Word count"
+                    />
+                  )}
+
+                  {(hostMode === 'timed' || hostMode === 'sudden-death') && (
+                    <textarea
+                      value={hostCustomText}
+                      onChange={(e) => {
+                        setHostCustomText(e.target.value);
+                        setHasUnsavedConfigChanges(true);
+                      }}
+                      rows={4}
+                      className="md:col-span-2 rounded border border-[#333] bg-[#0b0b0b] px-3 py-2 text-[#e8fffa]"
+                      placeholder="Optional custom race text for both players (minimum 10 characters)"
                     />
                   )}
                 </div>

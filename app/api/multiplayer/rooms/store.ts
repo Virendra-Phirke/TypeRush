@@ -7,6 +7,7 @@ export interface MultiplayerRoomConfig {
   difficulty: Difficulty;
   duration?: number;
   wordCount?: number;
+  customText?: string;
 }
 
 export interface RoomState {
@@ -56,6 +57,7 @@ const DEFAULT_CONFIG: MultiplayerRoomConfig = {
   mode: 'timed',
   difficulty: 'medium',
   duration: 60,
+  customText: '',
 };
 
 function hashSeed(input: string) {
@@ -78,6 +80,11 @@ function mulberry32(seed: number) {
 }
 
 function generateSharedPassage(code: string, config: MultiplayerRoomConfig): string {
+  const sanitizedCustomText = (config.customText || '').replace(/\s+/g, ' ').trim();
+  if ((config.mode === 'timed' || config.mode === 'sudden-death') && sanitizedCustomText.length >= 10) {
+    return sanitizedCustomText;
+  }
+
   const seed = hashSeed(`${code}:${config.mode}:${config.difficulty}:${config.duration ?? 0}:${config.wordCount ?? 0}`);
   const rand = mulberry32(seed);
 
@@ -161,6 +168,9 @@ export function configureRoom(code: string, playerId: string, config: Multiplaye
     difficulty: config.difficulty,
     duration: config.mode === 'timed' ? (config.duration ?? 60) : undefined,
     wordCount: config.mode === 'words' ? (config.wordCount ?? 50) : undefined,
+    customText: (config.mode === 'timed' || config.mode === 'sudden-death')
+      ? (config.customText || '').replace(/\s+/g, ' ').trim()
+      : undefined,
   };
 
   const updated: RoomState = {

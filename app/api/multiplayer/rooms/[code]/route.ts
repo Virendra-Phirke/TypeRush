@@ -44,6 +44,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const difficulty = typeof config.difficulty === 'string' ? config.difficulty : '';
     const duration = typeof config.duration === 'number' ? config.duration : undefined;
     const wordCount = typeof config.wordCount === 'number' ? config.wordCount : undefined;
+    const customText = typeof config.customText === 'string' ? config.customText : undefined;
 
     const allowedModes = new Set(['timed', 'words', 'quote', 'sudden-death', 'zen']);
     const allowedDifficulties = new Set(['easy', 'medium', 'hard', 'insane']);
@@ -57,6 +58,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       difficulty: difficulty as 'easy' | 'medium' | 'hard' | 'insane',
       duration,
       wordCount,
+      customText,
     });
 
     if (result.error) {
