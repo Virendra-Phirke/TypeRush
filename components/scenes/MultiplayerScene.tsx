@@ -17,11 +17,7 @@ interface RoomState {
   status: RoomStatus;
 }
 
-type RoomDb = Record<string, RoomState>;
-
-const STORAGE_KEY = 'typeRush.multiplayer.rooms';
 const PLAYER_KEY = 'typeRush.multiplayer.playerId';
-const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 
 function generatePlayerId() {
   return `p_${Math.random().toString(36).slice(2, 10)}`;
@@ -36,46 +32,49 @@ function getOrCreatePlayerId() {
   return created;
 }
 
-function generateRoomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i += 1) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+async function parseJsonOrThrow(response: Response) {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = typeof data?.error === 'string' ? data.error : 'Request failed.';
+    throw new Error(message);
   }
-  return code;
+  return data;
 }
 
-function loadRooms(): RoomDb {
-  if (typeof window === 'undefined') return {};
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{}') as RoomDb;
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
+async function apiCreateRoom(hostId: string): Promise<RoomState> {
+  const response = await fetch('/api/multiplayer/rooms', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hostId }),
+  });
+  const data = await parseJsonOrThrow(response);
+  return data.room as RoomState;
 }
 
-function saveRooms(rooms: RoomDb) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
+async function apiGetRoom(code: string): Promise<RoomState | null> {
+  const response = await fetch(`/api/multiplayer/rooms/${code}`, { cache: 'no-store' });
+  if (response.status === 404) return null;
+  const data = await parseJsonOrThrow(response);
+  return data.room as RoomState;
 }
 
-function pruneRooms(rooms: RoomDb): RoomDb {
-  const now = Date.now();
-  const entries = Object.entries(rooms).filter(([, room]) => now - room.createdAt <= ROOM_TTL_MS);
-  return Object.fromEntries(entries);
+async function apiJoinRoom(code: string, playerId: string): Promise<RoomState> {
+  const response = await fetch(`/api/multiplayer/rooms/${code}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'join', playerId }),
+  });
+  const data = await parseJsonOrThrow(response);
+  return data.room as RoomState;
 }
 
-function upsertRoom(room: RoomState) {
-  const rooms = pruneRooms(loadRooms());
-  rooms[room.code] = room;
-  saveRooms(rooms);
-}
-
-function getRoom(code: string): RoomState | null {
-  const rooms = pruneRooms(loadRooms());
-  saveRooms(rooms);
-  return rooms[code] || null;
+async function apiLeaveRoom(code: string, playerId: string): Promise<void> {
+  const response = await fetch(`/api/multiplayer/rooms/${code}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'leave', playerId }),
+  });
+  await parseJsonOrThrow(response);
 }
 
 export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
@@ -84,6 +83,7 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
   const [activeRoom, setActiveRoom] = useState<RoomState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const isHost = activeRoom?.hostId === playerId;
   const isGuest = activeRoom?.guestId === playerId;
@@ -92,42 +92,40 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
     if (!activeRoom) return;
 
     const interval = window.setInterval(() => {
-      const latest = getRoom(activeRoom.code);
-      if (!latest) {
-        setActiveRoom(null);
-        setError('Room expired or was closed.');
-        return;
-      }
-      setActiveRoom(latest);
+      apiGetRoom(activeRoom.code)
+        .then((latest) => {
+          if (!latest) {
+            setActiveRoom(null);
+            setError('Room expired or was closed.');
+            return;
+          }
+          setActiveRoom(latest);
+        })
+        .catch(() => {
+          setError('Unable to sync room status. Check network and retry.');
+        });
     }, 800);
 
     return () => window.clearInterval(interval);
   }, [activeRoom]);
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
+    if (isLoading) return;
     setError(null);
     setCopied(false);
-
-    let code = generateRoomCode();
-    const rooms = loadRooms();
-    let attempts = 0;
-    while (rooms[code] && attempts < 8) {
-      code = generateRoomCode();
-      attempts += 1;
+    setIsLoading(true);
+    try {
+      const room = await apiCreateRoom(playerId);
+      setActiveRoom(room);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to create room.');
+    } finally {
+      setIsLoading(false);
     }
-
-    const room: RoomState = {
-      code,
-      hostId: playerId,
-      createdAt: Date.now(),
-      status: 'waiting',
-    };
-
-    upsertRoom(room);
-    setActiveRoom(room);
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
+    if (isLoading) return;
     setError(null);
     const code = joinCode.trim().toUpperCase();
     if (code.length !== 6) {
@@ -135,30 +133,15 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
       return;
     }
 
-    const room = getRoom(code);
-    if (!room) {
-      setError('Room not found.');
-      return;
+    setIsLoading(true);
+    try {
+      const joined = await apiJoinRoom(code, playerId);
+      setActiveRoom(joined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to join room.');
+    } finally {
+      setIsLoading(false);
     }
-
-    if (room.hostId === playerId) {
-      setActiveRoom(room);
-      return;
-    }
-
-    if (room.guestId && room.guestId !== playerId) {
-      setError('Room is full.');
-      return;
-    }
-
-    const joined: RoomState = {
-      ...room,
-      guestId: playerId,
-      status: 'ready',
-    };
-
-    upsertRoom(joined);
-    setActiveRoom(joined);
   };
 
   const handleCopyCode = async () => {
@@ -172,26 +155,13 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
     }
   };
 
-  const handleLeaveRoom = () => {
+  const handleLeaveRoom = async () => {
     if (!activeRoom) return;
 
-    const room = getRoom(activeRoom.code);
-    if (!room) {
-      setActiveRoom(null);
-      return;
-    }
-
-    if (room.hostId === playerId) {
-      const rooms = loadRooms();
-      delete rooms[room.code];
-      saveRooms(rooms);
-    } else if (room.guestId === playerId) {
-      const updated: RoomState = {
-        ...room,
-        guestId: undefined,
-        status: 'waiting',
-      };
-      upsertRoom(updated);
+    try {
+      await apiLeaveRoom(activeRoom.code, playerId);
+    } catch {
+      // We still clear local state to avoid trapping the user in stale room UI.
     }
 
     setActiveRoom(null);
@@ -212,7 +182,7 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
         </div>
 
         <p className="text-[#888] mb-6 text-sm md:text-base">
-          Host generates a room code. Opponent enters that code to join. Works across tabs/windows in the same browser profile.
+          Host generates a room code. Opponent enters that code to join from another browser or another device using the same app URL.
         </p>
 
         {!activeRoom && (
@@ -224,9 +194,10 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleCreateRoom}
+                disabled={isLoading}
                 className="px-5 py-3 rounded border-2 border-[#00f5d4] text-[#00f5d4] font-bold"
               >
-                Generate Room Code
+                {isLoading ? 'Creating...' : 'Generate Room Code'}
               </motion.button>
             </div>
 
@@ -242,9 +213,10 @@ export function MultiplayerScene({ onBack }: MultiplayerSceneProps) {
                 />
                 <button
                   onClick={handleJoinRoom}
+                  disabled={isLoading}
                   className="px-4 py-2 rounded border-2 border-[#ff4d6d] text-[#ff4d6d] font-bold"
                 >
-                  Join
+                  {isLoading ? 'Joining...' : 'Join'}
                 </button>
               </div>
             </div>
